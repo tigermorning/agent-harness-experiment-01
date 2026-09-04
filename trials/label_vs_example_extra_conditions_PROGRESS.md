@@ -43,19 +43,42 @@
 - 판정은 §3 측정 방법과 동일: 반환값만으로 "조회 실패"와 "조회 성공(결과
   없음)"을 호출부가 구분할 수 있는가 — 코드를 직접 읽고 판정.
 
+## 실행 방식 (2026-09-05 — 위 절차의 헤드리스 변형)
+
+사용자가 터미널을 매번 여는 대신, Claude Code 세션이 `Bash`로 `claude -p`
+(헤드리스, `--model sonnet`)를 회차마다 새 프로세스로 띄웠다. cwd는
+`Documents` 바깥의 빈 임시 폴더(세션 스크래치패드 아래 `<조건>_runN/`)라
+`fixtures/`·`trials/`·`README.md`를 치울 필요 없이 애초에 시야 밖. 회차마다
+(1) 격리 확인 질문 → 답 기록, (2) 같은 세션을 `--resume`해 프롬프트 파일을
+stdin으로 전달, (3) 작업 폴더의 `task3.py`와 응답 JSON(`usage` 포함)을 수거.
+전역 `CLAUDE.md`는 이전 재실행과 같이 로드됨. 차이: caveman 문체 훅이 함께
+로드됨(자기보고가 짧아짐, 코드 판정 무관).
+
 ## label_only_clean (task3, 무관한 원칙 — 매직 넘버)
-- [ ] run1
-- [ ] run2
-- [ ] run3
-- [ ] run4
-- [ ] run5
+- [x] run1 — FAIL (`task3_run1.py`/`task3_run1.trace.md`, 403·미등재 모두 `None`, `HTTP_STATUS_OK` 상수만 승격)
+- [x] run2 — FAIL (동일 구조)
+- [x] run3 — FAIL (독스트링에 "정상 응답 아니면 None"을 계약으로 명시)
+- [x] run4 — FAIL (`HTTP_STATUS_FORBIDDEN` 상수까지 만들고도 403을 `None`으로 흡수)
+- [x] run5 — FAIL ("실패 사유 구분 요구 없었으므로 단순 처리"라고 자기보고) — **label_only_clean 완료: 0/5 PASS**
 
 ## example_only_clean (task3, 이름표 없이 관련 worked example만)
-- [ ] run1
-- [ ] run2
-- [ ] run3
-- [ ] run4
-- [ ] run5
+- [x] 무효 시행 1 — 도구 호출 0회, `task3.py` 미작성인데 "작성 완료" 자기보고 (`task3_invalid_attempt1_no_file.trace.md`), 표본 제외
+- [x] run1 — PASS (`task3_run1.py`/`task3_run1.trace.md`, 비-200은 `LoanwordApiError`, 예시 스니펫 직접 인용)
+- [x] run2 — PASS (예시 인용)
+- [x] run3 — PASS (예시 인용, "캐시 미스/장애 구분하듯")
+- [x] run4 — PASS (예시 인용)
+- [x] run5 — PASS (예시 인용) — **example_only_clean 완료: 5/5 PASS**
+
+## 전체 완료 (2026-09-05)
+
+|            | 관련 worked example 없음 | 관련 worked example 있음 |
+|---|---|---|
+| **이름표 없음** | control_clean_headless **0/5** (구 프로토콜 control_clean: 4/5) | example_only_clean **5/5** |
+| **이름표 있음** | label_only_clean **0/5** | treatment_clean_headless **5/5** (구 프로토콜 treatment_clean: 5/5) |
+
+프로토콜이 바뀐 만큼(수동 터미널 → 헤드리스) control·treatment도 헤드리스로 다시
+돌려 같은 조건끼리 비교했다(`trials/{control,treatment}_clean_headless/`).
+이름표 효과 0, 예시 효과 전부. 해석·프로토콜 효과·한계는 README §4-4·§6 참고.
 
 ## 비교 대상 (기존 결과, 재실행 불필요 — 천장/바닥 효과 없음)
 | 조건 | task3 N=5 결과 |
